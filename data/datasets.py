@@ -8,8 +8,7 @@ from pathlib import Path
 import math
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-sys.path.append(os.getcwd()) # Import from current path
-from dataset_base import BaseDataset
+from .dataset_base import BaseDataset
 
 plt.style.use('ggplot')
 
