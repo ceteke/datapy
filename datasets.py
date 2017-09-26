@@ -6,47 +6,55 @@ import numpy as np
 from nltk.tokenize import RegexpTokenizer
 from pathlib import Path
 import math
+import matplotlib.pyplot as plt
+from scipy.stats import norm
 sys.path.append(os.getcwd()) # Import from current path
 from dataset_base import BaseDataset
+
+plt.style.use('ggplot')
 
 class IMDBDataset(BaseDataset):
     dataset_url = 'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
 
+    PAD_IDX = 0
+    EOS_IDX = 1
+    UNK_IDX = 2
+
+    PAD_TOKEN = 'PAD'
+    EOS_TOKEN = 'EOS'
+    UNK_TOKEN = 'UNK'
+
     def __init__(self):
         super().__init__()
         self.__token2idx = {
-            'PAD': 0,
-            'EOS': 1,
-            'UNK': 2,
+            self.PAD_TOKEN: self.PAD_IDX,
+            self.EOS_TOKEN: self.EOS_IDX,
+            self.UNK_TOKEN: self.UNK_IDX,
         }
         self.__idx2token = {
-            0: 'PAD',
-            1: 'EOS',
-            2: 'UNK'
+            self.PAD_IDX: self.PAD_TOKEN,
+            self.EOS_IDX: self.EOS_TOKEN,
+            self.UNK_IDX: self.UNK_TOKEN
         }
         self.__token2count = {}
         self.vocab_size = 3
         self.__tokenizer = RegexpTokenizer(r'\w+')
         self.__is_processed = False
 
-    def get_training_data(self):
-        assert self.__is_processed, "First call process() method"
-        return self.__training_data
-
     def process(self):
         data_file = Path(self.dataset_path)
         if not data_file.exists():
             self._download_dataset()
         self._load_training_data()
-        self.__is_processed = True
 
     def _add_line(self, line):
         line_tokens = self._tokenize_line(line)
         for l in line_tokens:
-            if l not in self.__token2count:
-                self.__token2count[l] = 1
-            else:
-                self.__token2count[l] += 1
+            self.__token2count[l] = self.__token2count.get(l, 0) + 1
+
+    def _add_lines(self, lines):
+        for l in lines:
+            self._add_line(l)
 
     def _tokenize_line(self, line):
         l_proc = line.strip().replace('<br >', '').replace('<br />', '').lower()
@@ -55,9 +63,9 @@ class IMDBDataset(BaseDataset):
 
     def line2seq(self, line):
         line_tokens = self._tokenize_line(line)
-        l_seq = [self.__token2idx[t] if t in self.__token2idx else 2 for t in line_tokens]
+        l_seq = [self.__token2idx[t] if t in self.__token2idx else self.UNK_IDX for t in line_tokens]
 
-        return l_seq
+        return np.array(l_seq)
 
     def seq2line(self, seq):
         line = ' '.join([self.__idx2token[idx] for idx in seq])
@@ -68,6 +76,8 @@ class IMDBDataset(BaseDataset):
         First 50k tokens in the vocabulary
         :return:
         '''
+        assert len(self.__token2count) > 0, 'Nothing in vocabulary'
+
         self.__token2count = dict(sorted(self.__token2count.items(), key=operator.itemgetter(1), reverse=True)[:50000])
 
         for k, _ in self.__token2count.items():
@@ -75,11 +85,19 @@ class IMDBDataset(BaseDataset):
             self.__idx2token[self.vocab_size] = k
             self.vocab_size += 1
 
-        self.__token2count['PAD'] = -1
-        self.__token2count['UNK'] = -1
-        self.__token2count['EOS'] = -1
+        self.__token2count[self.PAD_TOKEN] = -1
+        self.__token2count[self.EOS_TOKEN] = -1
+        self.__token2count[self.UNK_TOKEN] = -1
 
         assert (set(self.__token2count.keys()) == set(self.__token2idx.keys())), 'token2count and token2idx does not have same tokens'
+
+    def _load_files(self, files):
+        file_texts = []
+        for f_name in files:
+            with open(f_name, 'r', encoding='utf-8') as f:
+                line = f.readline()
+                file_texts.append(line)
+        return np.array(file_texts)
 
     def _load_training_data(self):
         print("Reading training dataset...")
@@ -94,42 +112,40 @@ class IMDBDataset(BaseDataset):
         neg_files = [os.path.join(train_path_neg, x) for x in os.listdir(train_path_neg) if 'txt' in x]
         unsup_files = [os.path.join(train_path_unsup, x) for x in os.listdir(train_path_unsup) if 'txt' in x]
 
-        pos_data = []
-        neg_data = []
-        unsup_data = []
-
         print("Positive...", flush=True)
-        for f_name in pos_files:
-            with open(f_name, 'r', encoding='utf-8') as f:
-                line = f.readline()
-                pos_data.append(line)
-                self._add_line(line)
+        pos_data = self._load_files(pos_files)
 
         print("Negative...", flush=True)
-        for f_name in neg_files:
-            with open(f_name, 'r', encoding='utf-8') as f:
-                line = f.readline()
-                neg_data.append(line)
-                self._add_line(line)
+        neg_data = self._load_files(neg_files)
 
         print("Unsupervised...", flush=True)
-        for f_name in unsup_files:
-            with open(f_name, 'r', encoding='utf-8') as f:
-                line = f.readline()
-                unsup_data.append(line)
-                self._add_line(line)
+        unsup_data = self._load_files(unsup_files)
+
+        print("Forming vocabulary...", flush=True)
+        training_texts = np.concatenate((pos_data, neg_data))
+        self._add_lines(training_texts)
+        self._process_vocab()
+
+        print("Forming sequence data...", flush=True)
+        # c = []
+
+        train_seq = []
+        for i, text in enumerate(training_texts):
+            text_seq = self.line2seq(text)
+            train_seq.append(text_seq)
+
+        self.training_data = train_seq
+
+        # c.sort()
+
+        # fit = norm.pdf(c, np.mean(c), np.std(c))
+        # plt.plot(c, fit)
+        # plt.hist(c, normed=True)
+        # plt.show()
+
+        # plt.show()
 
         print('Total token count: {}'.format(len(self.__token2count)))
-        print("Processing vocabulary...", flush=True)
-        self._process_vocab()
-        pickle.dump(self.__token2idx, open('token2idx.pkl', 'wb'))
-
-        print("Forming sequeunces...", flush=True)
-        pos_data = [self.line2seq(l) for l in pos_data]
-        neg_data = [self.line2seq(l) for l in neg_data]
-        unsup_data = [self.line2seq(l) for l in unsup_data]
-
-        self.__training_data = {'positive': pos_data, 'negative': neg_data, 'unsupervised': unsup_data}
 
 class CIFAR10Dataset(BaseDataset):
     dataset_url = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
@@ -139,7 +155,6 @@ class CIFAR10Dataset(BaseDataset):
 
         with open(self.dataset_path + '/cifar-10-batches-py/batches.meta', 'rb') as fo:
             dict = pickle.load(fo, encoding='bytes')
-            print(dict)
 
     def process(self):
         data_file = Path(self.dataset_path)
