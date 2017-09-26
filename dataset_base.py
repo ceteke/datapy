@@ -32,6 +32,10 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
     def process(self):
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def _load_training_data(self):
+        raise NotImplementedError
+
     def _unarchive_data(self):
         print("Unarchiving dataset {} -> {}...".format(self._download_file_name, self.file_name))
         tar = tarfile.open(self._download_file_name, "r:gz")

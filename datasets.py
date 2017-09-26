@@ -145,9 +145,9 @@ class CIFAR10Dataset(BaseDataset):
         data_file = Path(self.dataset_path)
         if not data_file.exists():
             self._download_dataset()
-        self._load_training_data(32)
+        self._load_training_data()
 
-    def _load_training_data(self, batch_size):
+    def _load_training_data(self):
         for i in range(1,6):
             batch_dir = self.dataset_path + '/cifar-10-batches-py/data_batch_{}'.format(i)
 
@@ -164,7 +164,7 @@ class CIFAR10Dataset(BaseDataset):
                     continue
 
                 training_data = np.concatenate((training_data, data_rgb))
-                training_labels = np.concatenate((training_labels, labels))
+                training_labels = np.append(training_labels, labels)
 
         self.training_data = training_data
         self.training_labels = training_labels
