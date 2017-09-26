@@ -1,11 +1,13 @@
 import os
 import sys
-sys.path.append(os.getcwd()) # Import from current path
-from dataset_base import BaseDataset
+import operator
+import pickle
+import numpy as np
 from nltk.tokenize import RegexpTokenizer
 from pathlib import Path
-import pickle
-import operator
+import math
+sys.path.append(os.getcwd()) # Import from current path
+from dataset_base import BaseDataset
 
 class IMDBDataset(BaseDataset):
     dataset_url = 'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
@@ -123,10 +125,46 @@ class IMDBDataset(BaseDataset):
         pickle.dump(self.__token2idx, open('token2idx.pkl', 'wb'))
 
         print("Forming sequeunces...", flush=True)
-        pos_data = [self._line2seq(l) for l in pos_data]
-        neg_data = [self._line2seq(l) for l in neg_data]
-        unsup_data = [self._line2seq(l) for l in unsup_data]
+        pos_data = [self.line2seq(l) for l in pos_data]
+        neg_data = [self.line2seq(l) for l in neg_data]
+        unsup_data = [self.line2seq(l) for l in unsup_data]
 
         self.__training_data = {'positive': pos_data, 'negative': neg_data, 'unsupervised': unsup_data}
 
-#class CIFAR10Dataset(BaseDataset):
+class CIFAR10Dataset(BaseDataset):
+    dataset_url = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
+
+    def __init__(self):
+        super().__init__()
+
+        with open(self.dataset_path + '/cifar-10-batches-py/batches.meta', 'rb') as fo:
+            dict = pickle.load(fo, encoding='bytes')
+            print(dict)
+
+    def process(self):
+        data_file = Path(self.dataset_path)
+        if not data_file.exists():
+            self._download_dataset()
+        self._load_training_data(32)
+
+    def _load_training_data(self, batch_size):
+        for i in range(1,6):
+            batch_dir = self.dataset_path + '/cifar-10-batches-py/data_batch_{}'.format(i)
+
+            with open(batch_dir, 'rb') as fo:
+                dict = pickle.load(fo, encoding='bytes')
+                data = dict[b'data']
+                labels = dict[b'labels']
+
+                data_rgb = np.transpose(np.reshape(data, (-1, 3, 32, 32)), (0,2,3,1)) # R G B channels
+
+                if i == 1:
+                    training_data = data_rgb
+                    training_labels = labels
+                    continue
+
+                training_data = np.concatenate((training_data, data_rgb))
+                training_labels = np.concatenate((training_labels, labels))
+
+        self.training_data = training_data
+        self.training_labels = training_labels

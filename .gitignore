@@ -9,6 +9,7 @@ __pycache__/
 *.so
 .idea
 aclImdb_v1
+cifar-10-python
 # Distribution / packaging
 .Python
 env/
