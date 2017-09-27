@@ -1,5 +1,7 @@
 from data.datasets import IMDBDataset, CIFAR10Dataset
+import matplotlib.pyplot as plt
 
-cds = IMDBDataset()
+cds = CIFAR10Dataset()
 cds.process()
-batches, batch_lens = cds.get_batches_sequence(32, 600)
+plt.imshow(cds.training_data[0])
+plt.show()

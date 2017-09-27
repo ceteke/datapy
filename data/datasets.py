@@ -158,6 +158,8 @@ class CIFAR10Dataset(BaseDataset):
         if not data_file.exists():
             self._download_dataset()
         self._load_training_data()
+        self.training_data = self.training_data / 255.0
+        print(self.training_data.shape)
 
     def _load_training_data(self):
         for i in range(1,6):
