@@ -23,7 +23,7 @@ class IMDBDataset(BaseDataset):
     EOS_TOKEN = 'EOS'
     UNK_TOKEN = 'UNK'
 
-    def __init__(self):
+    def __init__(self, max_vocab_size):
         super().__init__()
         self.__token2idx = {
             self.PAD_TOKEN: self.PAD_IDX,
@@ -39,6 +39,7 @@ class IMDBDataset(BaseDataset):
         self.vocab_size = 3
         self.__tokenizer = RegexpTokenizer(r'\w+')
         self.__is_processed = False
+        self.max_vocab_size = max_vocab_size
 
     def process(self):
         data_file = Path(self.dataset_path)
@@ -77,7 +78,7 @@ class IMDBDataset(BaseDataset):
         '''
         assert len(self.__token2count) > 0, 'Nothing in vocabulary'
 
-        self.__token2count = dict(sorted(self.__token2count.items(), key=operator.itemgetter(1), reverse=True)[:50000])
+        self.__token2count = dict(sorted(self.__token2count.items(), key=operator.itemgetter(1), reverse=True)[:self.max_vocab_size])
 
         for k, _ in self.__token2count.items():
             self.__token2idx[k] = self.vocab_size
