@@ -121,7 +121,7 @@ class IMDBDataset(BaseDataset):
         unsup_data = self._load_files(unsup_files)
 
         print("Forming vocabulary...", flush=True)
-        training_texts = np.concatenate((pos_data, neg_data))
+        training_texts = np.concatenate((pos_data, neg_data, unsup_data))
         self._add_lines(training_texts)
         self._process_vocab()
 
