@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from .dataset_base import BaseDataset
 
-plt.style.use('ggplot')
+#plt.style.use('ggplot')
 
 class IMDBDataset(BaseDataset):
     dataset_url = 'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
@@ -152,9 +152,6 @@ class CIFAR10Dataset(BaseDataset):
 
     def __init__(self):
         super().__init__()
-
-        with open(self.dataset_path + '/cifar-10-batches-py/batches.meta', 'rb') as fo:
-            dict = pickle.load(fo, encoding='bytes')
 
     def process(self):
         data_file = Path(self.dataset_path)
