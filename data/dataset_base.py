@@ -25,7 +25,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
 
     @property
     def dataset_path(self):
-        current_path = os.path.dirname(os.path.realpath(__file__))
+        current_path = '' # TODO: we should get path
         return os.path.join(current_path, self.file_name)
 
     @abc.abstractmethod
