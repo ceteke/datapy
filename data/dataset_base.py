@@ -14,6 +14,8 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         self.__data_types = ['.tar.gz']
         self.training_data = None
         self.training_labels = None
+        self.test_data = None
+        self.test_labels = None
 
     @property
     def _download_file_name(self):
@@ -72,16 +74,22 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             if self.training_labels is not None:
                 self.training_labels[rand] = self.training_labels[i]
 
-    def get_batches_sequence(self, batch_size, max_length, pad_token=0, shuffle=True):
+    def get_batches_sequence(self, batch_size, max_length, pad_token=0, shuffle=True, train=True):
         '''
         self.training_labels must be list of np.array NOT 2D np.array
         '''
         assert self.training_data is not None, "Load the data first"
 
-        if shuffle:
-            self._shuffle_data()
+        if train:
+            data = self.training_data
 
-        training_batches_unproc = [self.training_data[i:i + batch_size] for i in range(0, len(self.training_data), batch_size)]
+            if shuffle:
+                self._shuffle_data()
+
+        else:
+            data = self.test_data
+
+        training_batches_unproc = [self.training_data[i:i + batch_size] for i in range(0, len(data), batch_size)]
         training_batches_processed = []
         training_batch_lengths = []
 
@@ -105,7 +113,10 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             training_batch_lengths.append(batch_lengths)
             training_batches_processed.append(batch_sequences)
 
-        if self.training_labels is not None:
-            label_batches = [self.training_data[i:i + batch_size] for i in range(0, len(self.training_labels), batch_size)]
+        if self.training_labels is not None and train:
+            label_batches = [self.training_labels[i:i + batch_size] for i in range(0, len(self.training_labels), batch_size)]
+            return training_batches_processed, training_batch_lengths, label_batches
+        if self.test_labels is not None and not train:
+            label_batches = [self.test_labels[i:i + batch_size] for i in range(0, len(self.test_labels), batch_size)]
             return training_batches_processed, training_batch_lengths, label_batches
         return training_batches_processed, training_batch_lengths

@@ -23,7 +23,7 @@ class IMDBDataset(BaseDataset):
     EOS_TOKEN = 'EOS'
     UNK_TOKEN = 'UNK'
 
-    def __init__(self, max_vocab_size):
+    def __init__(self, max_vocab_size, load_unsup=True):
         super().__init__()
         self.__token2idx = {
             self.PAD_TOKEN: self.PAD_IDX,
@@ -40,12 +40,14 @@ class IMDBDataset(BaseDataset):
         self.__tokenizer = RegexpTokenizer(r'\w+')
         self.__is_processed = False
         self.max_vocab_size = max_vocab_size
+        self.load_unsup = load_unsup
 
     def process(self):
         data_file = Path(self.dataset_path)
         if not data_file.exists():
             self._download_dataset()
         self._load_training_data()
+        self._load_test_data()
 
     def _add_line(self, line):
         line_tokens = self._tokenize_line(line)
@@ -63,9 +65,17 @@ class IMDBDataset(BaseDataset):
 
     def line2seq(self, line):
         line_tokens = self._tokenize_line(line)
-        l_seq = [self.__token2idx[t] if t in self.__token2idx else self.UNK_IDX for t in line_tokens]
+        miss_count = 0
+        l_seq = []
 
-        return np.array(l_seq)
+        for t in line_tokens:
+            if t in self.__token2idx:
+                l_seq.append(self.__token2idx[t])
+            else:
+                l_seq.append(self.UNK_IDX)
+                miss_count += 1
+
+        return np.array(l_seq), miss_count
 
     def seq2line(self, seq):
         line = ' '.join([self.__idx2token[idx] for idx in seq])
@@ -118,11 +128,16 @@ class IMDBDataset(BaseDataset):
         print("Negative...", flush=True)
         neg_data = self._load_files(neg_files)
 
-        print("Unsupervised...", flush=True)
-        unsup_data = self._load_files(unsup_files)
+        if self.load_unsup:
+            print("Unsupervised...", flush=True)
+            unsup_data = self._load_files(unsup_files)
 
         print("Forming vocabulary...", flush=True)
-        training_texts = np.concatenate((pos_data, neg_data, unsup_data))
+        if self.load_unsup:
+            training_texts = np.concatenate((pos_data, neg_data, unsup_data))
+        else:
+            training_texts = np.concatenate((pos_data, neg_data))
+            self.training_labels = np.concatenate((np.ones(len(pos_data)), np.zeros(len(neg_data))))
         self._add_lines(training_texts)
         self._process_vocab()
 
@@ -130,8 +145,10 @@ class IMDBDataset(BaseDataset):
         # c = []
 
         train_seq = []
+        total_miss = 0
         for i, text in enumerate(training_texts):
-            text_seq = self.line2seq(text)
+            text_seq, miss = self.line2seq(text)
+            total_miss += miss
             train_seq.append(text_seq)
 
         self.training_data = train_seq
@@ -146,6 +163,36 @@ class IMDBDataset(BaseDataset):
         # plt.show()
 
         print('Total token count: {}'.format(len(self.__token2count)))
+        return total_miss
+
+    def _load_test_data(self):
+        print("Reading test dataset...")
+
+        dataset_path = os.path.join(self.dataset_path, 'aclImdb')
+
+        train_path_neg = '{}/test/neg'.format(dataset_path)
+        train_path_pos = '{}/test/pos'.format(dataset_path)
+
+        pos_files = [os.path.join(train_path_pos, x) for x in os.listdir(train_path_pos) if 'txt' in x]
+        neg_files = [os.path.join(train_path_neg, x) for x in os.listdir(train_path_neg) if 'txt' in x]
+
+        print("Positive...", flush=True)
+        pos_data = self._load_files(pos_files)
+
+        print("Negative...", flush=True)
+        neg_data = self._load_files(neg_files)
+
+        test_texts = np.concatenate((pos_data, neg_data))
+        self.test_labels = np.concatenate((np.ones(len(pos_data)), np.zeros(len(neg_data))))
+
+        print("Forming sequence data...", flush=True)
+
+        test_seq = []
+        for i, text in enumerate(test_texts):
+            text_seq = self.line2seq(text)
+            test_seq.append(text_seq)
+
+        self.test_data = test_seq
 
 class CIFAR10Dataset(BaseDataset):
     dataset_url = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
