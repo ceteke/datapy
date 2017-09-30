@@ -34,9 +34,6 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
     def process(self):
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def _load_training_data(self):
-        raise NotImplementedError
 
     def _unarchive_data(self):
         print("Unarchiving dataset {} -> {}...".format(self._download_file_name, self.file_name))
@@ -89,7 +86,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         else:
             data = self.test_data
 
-        training_batches_unproc = [self.training_data[i:i + batch_size] for i in range(0, len(data), batch_size)]
+        training_batches_unproc = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
         training_batches_processed = []
         training_batch_lengths = []
 
