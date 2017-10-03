@@ -33,6 +33,10 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         current_path = '' # TODO: we should get path
         return os.path.join(current_path, self.file_name)
 
+    @property
+    def is_test_loaded(self):
+        return self.test_data is not None
+
     @abc.abstractmethod
     def process(self):
         raise NotImplementedError
