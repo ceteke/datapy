@@ -1,45 +1,67 @@
 import os
-import sys
-import operator
 import pickle
 import numpy as np
-from nltk.tokenize import RegexpTokenizer
 from pathlib import Path
 import math
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-from .dataset_base import BaseDataset
+from .dataset_base import SequenceDataset, BaseDataset
 
 #plt.style.use('ggplot')
 
-class IMDBDataset(BaseDataset):
+class CornellMovie(SequenceDataset):
+    dataset_url = 'http://www.mpi-sws.org/~cristian/data/cornell_movie_dialogs_corpus.zip'
+    data_type = '.zip'
+
+    def __init__(self, max_vocab_size):
+        super().__init__(max_vocab_size)
+
+    def process(self):
+        data_file = Path(self.dataset_path)
+        if not data_file.exists():
+            self._download_dataset()
+        return self._load_training_data()
+
+    def _load_training_data(self):
+        dataset_path = os.path.join(self.dataset_path, 'cornell movie-dialogs corpus')
+
+        lines_file = os.path.join(dataset_path, 'movie_lines.txt')
+
+        print("Reading dataset")
+        file_texts = []
+        with open(lines_file, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = f.readlines()
+            for l in lines:
+                utterance = l.split(' +++$+++ ')[-1]
+                file_texts.append(utterance)
+        print("Forming vocabulary...", flush=True)
+        self._add_lines(file_texts)
+        self._process_vocab()
+        self.training_data = []
+        print("Forming sequence data")
+        total_miss = 0
+
+        # c = []
+
+        for text in file_texts:
+            seq, miss = self.line2seq(text)
+            total_miss += miss
+            self.training_data.append(seq)
+
+        # c.sort()
+        # fit = norm.pdf(c, np.mean(c), np.std(c))
+        # plt.plot(c, fit)
+        # plt.hist(c, normed=True)
+        # plt.show()
+
+        return total_miss
+
+class IMDBDataset(SequenceDataset):
     dataset_url = 'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
 
-    PAD_IDX = 0
-    EOS_IDX = 1
-    UNK_IDX = 2
-
-    PAD_TOKEN = 'PAD'
-    EOS_TOKEN = 'EOS'
-    UNK_TOKEN = 'UNK'
-
     def __init__(self, max_vocab_size, load_unsup=True):
-        super().__init__()
-        self.__token2idx = {
-            self.PAD_TOKEN: self.PAD_IDX,
-            self.EOS_TOKEN: self.EOS_IDX,
-            self.UNK_TOKEN: self.UNK_IDX,
-        }
-        self.__idx2token = {
-            self.PAD_IDX: self.PAD_TOKEN,
-            self.EOS_IDX: self.EOS_TOKEN,
-            self.UNK_IDX: self.UNK_TOKEN
-        }
-        self.__token2count = {}
-        self.vocab_size = 3
-        self.__tokenizer = RegexpTokenizer(r'\w+')
+        super().__init__(max_vocab_size)
         self.__is_processed = False
-        self.max_vocab_size = max_vocab_size
         self.load_unsup = load_unsup
 
     def process(self):
@@ -48,58 +70,6 @@ class IMDBDataset(BaseDataset):
             self._download_dataset()
         self._load_training_data()
         self._load_test_data()
-
-    def _add_line(self, line):
-        line_tokens = self._tokenize_line(line)
-        for l in line_tokens:
-            self.__token2count[l] = self.__token2count.get(l, 0) + 1
-
-    def _add_lines(self, lines):
-        for l in lines:
-            self._add_line(l)
-
-    def _tokenize_line(self, line):
-        l_proc = line.strip().replace('<br >', '').replace('<br />', '').lower()
-        l_tok = self.__tokenizer.tokenize(l_proc)
-        return l_tok
-
-    def line2seq(self, line):
-        line_tokens = self._tokenize_line(line)
-        miss_count = 0
-        l_seq = []
-
-        for t in line_tokens:
-            if t in self.__token2idx:
-                l_seq.append(self.__token2idx[t])
-            else:
-                l_seq.append(self.UNK_IDX)
-                miss_count += 1
-
-        return np.array(l_seq), miss_count
-
-    def seq2line(self, seq):
-        line = ' '.join([self.__idx2token[idx] for idx in seq])
-        return line
-
-    def _process_vocab(self):
-        '''
-        First 50k tokens in the vocabulary
-        :return:
-        '''
-        assert len(self.__token2count) > 0, 'Nothing in vocabulary'
-
-        self.__token2count = dict(sorted(self.__token2count.items(), key=operator.itemgetter(1), reverse=True)[:self.max_vocab_size])
-
-        for k, _ in self.__token2count.items():
-            self.__token2idx[k] = self.vocab_size
-            self.__idx2token[self.vocab_size] = k
-            self.vocab_size += 1
-
-        self.__token2count[self.PAD_TOKEN] = -1
-        self.__token2count[self.EOS_TOKEN] = -1
-        self.__token2count[self.UNK_TOKEN] = -1
-
-        assert (set(self.__token2count.keys()) == set(self.__token2idx.keys())), 'token2count and token2idx does not have same tokens'
 
     def _load_files(self, files):
         file_texts = []
@@ -162,7 +132,6 @@ class IMDBDataset(BaseDataset):
 
         # plt.show()
 
-        print('Total token count: {}'.format(len(self.__token2count)))
         return total_miss
 
     def _load_test_data(self):

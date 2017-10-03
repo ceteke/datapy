@@ -10,6 +10,7 @@ __pycache__/
 .idea
 *aclImdb_v1
 *cifar-10-python
+*cornell_movie_dialogs_corpus
 # Distribution / packaging
 .Python
 env/

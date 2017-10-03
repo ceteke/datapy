@@ -1,9 +1,12 @@
 import abc
 import urllib.request as urq
 import tarfile
+import zipfile
 import os
 import numpy as np
 from math import ceil
+import operator
+from nltk.tokenize import RegexpTokenizer
 
 class BaseDataset(object, metaclass=abc.ABCMeta):
     should_delete = True
@@ -11,7 +14,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
     dataset_url = None
 
     def __init__(self):
-        self.__data_types = ['.tar.gz']
+        self.__data_types = ['.zip', '.tar.gz']
         self.training_data = None
         self.training_labels = None
         self.test_data = None
@@ -37,9 +40,14 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
 
     def _unarchive_data(self):
         print("Unarchiving dataset {} -> {}...".format(self._download_file_name, self.file_name))
-        tar = tarfile.open(self._download_file_name, "r:gz")
-        tar.extractall(self.file_name)
-        tar.close()
+        if self.data_type == '.tar.gz':
+            tar = tarfile.open(self._download_file_name, "r:gz")
+            tar.extractall(self.file_name)
+            tar.close()
+        else:
+            zip_ref = zipfile.ZipFile(self._download_file_name, 'r')
+            zip_ref.extractall(self.file_name)
+            zip_ref.close()
 
     def _download_dataset(self):
         assert self.data_type in self.__data_types, 'Given data type: {} not in known types'.format(self.data_type)
@@ -117,3 +125,83 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             label_batches = [self.test_labels[i:i + batch_size] for i in range(0, len(self.test_labels), batch_size)]
             return training_batches_processed, training_batch_lengths, label_batches
         return training_batches_processed, training_batch_lengths
+
+
+class SequenceDataset(BaseDataset):
+    PAD_IDX = 0
+    EOS_IDX = 1
+    UNK_IDX = 2
+
+    PAD_TOKEN = 'PAD'
+    EOS_TOKEN = 'EOS'
+    UNK_TOKEN = 'UNK'
+
+    def __init__(self, max_vocab_size):
+        super().__init__()
+        self.__token2idx = {
+            self.PAD_TOKEN: self.PAD_IDX,
+            self.EOS_TOKEN: self.EOS_IDX,
+            self.UNK_TOKEN: self.UNK_IDX,
+        }
+        self.__idx2token = {
+            self.PAD_IDX: self.PAD_TOKEN,
+            self.EOS_IDX: self.EOS_TOKEN,
+            self.UNK_IDX: self.UNK_TOKEN
+        }
+        self.__token2count = {}
+        self.vocab_size = 3
+        self.__tokenizer = RegexpTokenizer(r'\w+')
+        self.max_vocab_size = max_vocab_size
+
+    def _add_line(self, line):
+        line_tokens = self._tokenize_line(line)
+        for l in line_tokens:
+            self.__token2count[l] = self.__token2count.get(l, 0) + 1
+
+    def _add_lines(self, lines):
+        for l in lines:
+            self._add_line(l)
+        print("Total number of tokens: {}".format(len(self.__token2count)))
+
+    def _tokenize_line(self, line):
+        l_proc = line.strip().replace('<br >', '').replace('<br />', '').lower()
+        l_tok = self.__tokenizer.tokenize(l_proc)
+        return l_tok
+
+    def line2seq(self, line):
+        line_tokens = self._tokenize_line(line)
+        miss_count = 0
+        l_seq = []
+
+        for t in line_tokens:
+            if t in self.__token2idx:
+                l_seq.append(self.__token2idx[t])
+            else:
+                l_seq.append(self.UNK_IDX)
+                miss_count += 1
+
+        return np.array(l_seq), miss_count
+
+    def seq2line(self, seq):
+        line = ' '.join([self.__idx2token[idx] for idx in seq])
+        return line
+
+    def _process_vocab(self):
+        '''
+        First 50k tokens in the vocabulary
+        :return:
+        '''
+        assert len(self.__token2count) > 0, 'Nothing in vocabulary'
+
+        self.__token2count = dict(sorted(self.__token2count.items(), key=operator.itemgetter(1), reverse=True)[:self.max_vocab_size])
+
+        for k, _ in self.__token2count.items():
+            self.__token2idx[k] = self.vocab_size
+            self.__idx2token[self.vocab_size] = k
+            self.vocab_size += 1
+
+        self.__token2count[self.PAD_TOKEN] = -1
+        self.__token2count[self.EOS_TOKEN] = -1
+        self.__token2count[self.UNK_TOKEN] = -1
+
+        assert (set(self.__token2count.keys()) == set(self.__token2idx.keys())), 'token2count and token2idx does not have same tokens'
