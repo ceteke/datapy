@@ -13,14 +13,21 @@ class CornellMovie(SequenceDataset):
     dataset_url = 'http://www.mpi-sws.org/~cristian/data/cornell_movie_dialogs_corpus.zip'
     data_type = '.zip'
 
-    def __init__(self, max_vocab_size):
+    def __init__(self, max_vocab_size, test_data_size):
         super().__init__(max_vocab_size)
+        self.test_data_size = test_data_size
 
     def process(self):
         data_file = Path(self.dataset_path)
         if not data_file.exists():
             self._download_dataset()
         return self._load_training_data()
+
+    def _form_test_data(self, lines):
+        test_lines = lines[0:int(len(lines)*self.test_data_size)]
+        train_lines = lines[int(len(lines)*self.test_data_size):len(lines)]
+        print("Training data size:{}, Test data size:{}".format(len(train_lines), len(test_lines)))
+        return train_lines, test_lines
 
     def _load_training_data(self):
         dataset_path = os.path.join(self.dataset_path, 'cornell movie-dialogs corpus')
@@ -35,18 +42,24 @@ class CornellMovie(SequenceDataset):
                 utterance = l.split(' +++$+++ ')[-1]
                 file_texts.append(utterance)
         print("Forming vocabulary...", flush=True)
-        self._add_lines(file_texts)
+        train_lines, test_lines = self._form_test_data(file_texts)
+        self._add_lines(train_lines)
         self._process_vocab()
         self.training_data = []
+        self.test_data = []
         print("Forming sequence data")
         total_miss = 0
 
         # c = []
 
-        for text in file_texts:
+        for text in train_lines:
             seq, miss = self.line2seq(text)
             total_miss += miss
             self.training_data.append(seq)
+
+        for text in test_lines:
+            seq, miss = self.line2seq(text)
+            self.test_data.append(seq)
 
         # c.sort()
         # fit = norm.pdf(c, np.mean(c), np.std(c))

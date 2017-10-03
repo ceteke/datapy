@@ -98,11 +98,11 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         else:
             data = self.test_data
 
-        training_batches_unproc = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
-        training_batches_processed = []
-        training_batch_lengths = []
+        data_batches_unproc = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
+        data_batches_processed = []
+        data_batch_lengths = []
 
-        for unproc_batch in training_batches_unproc:
+        for unproc_batch in data_batches_unproc:
             max_len_batch = max(len(seq) for seq in unproc_batch)
             batch_lengths = []
             if max_len_batch > max_length:
@@ -119,16 +119,17 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
                     batch_sequences = sequence
                 else:
                     batch_sequences = np.concatenate((batch_sequences, sequence))
-            training_batch_lengths.append(batch_lengths)
-            training_batches_processed.append(batch_sequences)
+
+            data_batch_lengths.append(batch_lengths)
+            data_batches_processed.append(batch_sequences)
 
         if self.training_labels is not None and train:
             label_batches = [self.training_labels[i:i + batch_size] for i in range(0, len(self.training_labels), batch_size)]
-            return training_batches_processed, training_batch_lengths, label_batches
+            return data_batches_processed, data_batch_lengths, label_batches
         if self.test_labels is not None and not train:
             label_batches = [self.test_labels[i:i + batch_size] for i in range(0, len(self.test_labels), batch_size)]
-            return training_batches_processed, training_batch_lengths, label_batches
-        return training_batches_processed, training_batch_lengths
+            return data_batches_processed, data_batch_lengths, label_batches
+        return data_batches_processed, data_batch_lengths
 
 
 class SequenceDataset(BaseDataset):
