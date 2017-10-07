@@ -61,20 +61,27 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         if self.should_delete:
             os.remove(self._download_file_name)
 
-    def get_batches(self, batch_size, shuffle=True):
+    def get_batches(self, batch_size, train=True, shuffle=True):
         '''
         If self.training_label is None, it is assumed that there are no labels for this dataset
         '''
         assert self.training_data is not None, "Load the data first"
 
-        if shuffle:
+        if shuffle and train:
             self._shuffle_data()
 
-        training_batches = np.array_split(self.training_data, ceil(len(self.training_data)/batch_size))
-        if self.training_labels is not None:
-            label_batches = np.array_split(self.training_labels, ceil(len(self.training_labels)/batch_size))
-            return training_batches, label_batches
-        return training_batches
+        if train:
+            training_batches = np.array_split(self.training_data, ceil(len(self.training_data)/batch_size))
+            if self.training_labels is not None:
+                label_batches = np.array_split(self.training_labels, ceil(len(self.training_labels)/batch_size))
+                return training_batches, label_batches
+            return training_batches
+        else:
+            test_batches = np.array_split(self.test_data, ceil(len(self.test_data) / batch_size))
+            if self.test_labels is not None:
+                label_batches = np.array_split(self.test_labels, ceil(len(self.test_labels) / batch_size))
+                return test_batches, label_batches
+            return test_batches
 
     def _shuffle_data(self):
         rand_indxs = np.random.permutation(len(self.training_data))
@@ -190,6 +197,13 @@ class SequenceDataset(BaseDataset):
     def seq2line(self, seq):
         line = ' '.join([self.__idx2token[idx] for idx in seq])
         return line
+
+    def save_metadata(self):
+        lines = ["Word\tIdx\n"]
+        for k, v in self.__token2idx.items():
+            lines.append("{}\t{}\n".format(k,v))
+        with open('metadata.tsv', 'w+') as f:
+            f.writelines(lines)
 
     def _process_vocab(self):
         '''

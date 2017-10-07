@@ -187,8 +187,11 @@ class CIFAR10Dataset(BaseDataset):
         if not data_file.exists():
             self._download_dataset()
         self._load_training_data()
+        self._load_test_data()
         self.training_data = self.training_data / 255.0
-        print(self.training_data.shape)
+        self.test_data = self.test_data / 255.0
+        print("Training shape:", self.training_data.shape)
+        print("Test shape:", self.test_data.shape)
 
     def _load_training_data(self):
         for i in range(1,6):
@@ -211,3 +214,16 @@ class CIFAR10Dataset(BaseDataset):
 
         self.training_data = training_data
         self.training_labels = training_labels
+
+    def _load_test_data(self):
+        batch_dir = self.dataset_path + '/cifar-10-batches-py/test_batch'
+
+        with open(batch_dir, 'rb') as fo:
+            dict = pickle.load(fo, encoding='bytes')
+            data = dict[b'data']
+            labels = dict[b'labels']
+
+            data_rgb = np.transpose(np.reshape(data, (-1, 3, 32, 32)), (0, 2, 3, 1))
+
+            self.test_data = data_rgb
+            self.test_labels = labels
