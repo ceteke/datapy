@@ -195,7 +195,7 @@ class CIFAR10Dataset(BaseDataset):
 
         with open(self.dataset_path + '/cifar-10-batches-py/batches.meta', 'rb') as fo:
             self.label_names = pickle.load(fo, encoding='bytes')
-            self.label_names = self.label_names['label_names']
+            self.label_names = self.label_names[b'label_names']
 
     def _load_training_data(self):
         for i in range(1,6):
