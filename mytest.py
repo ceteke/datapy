@@ -4,4 +4,5 @@ import matplotlib.pyplot as plt
 
 ds = CIFAR10Dataset()
 ds.process()
+ds.get_sprite()
 

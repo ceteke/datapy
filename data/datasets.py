@@ -6,6 +6,7 @@ import math
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from .dataset_base import SequenceDataset, BaseDataset
+from PIL import Image
 
 #plt.style.use('ggplot')
 
@@ -240,3 +241,14 @@ class CIFAR10Dataset(BaseDataset):
             meta_data_lines.append(line)
 
         return meta_data_lines
+
+    def get_sprite(self, path):
+        result = Image.new("RGB", (3200, 3200))
+        test_images = list((self.test_data*255).astype('uint8'))
+        for index, i in enumerate(test_images):
+            x = index // 100 * 32
+            y = index % 100 * 32
+
+            img = Image.fromarray(i, 'RGB')
+            result.paste(img, (x, y, x + 32, y + 32))
+        result.save(path)
