@@ -193,6 +193,9 @@ class CIFAR10Dataset(BaseDataset):
         print("Training shape:", self.training_data.shape)
         print("Test shape:", self.test_data.shape)
 
+        with open(self.dataset_path + '/cifar-10-batches-py/batches.meta', 'rb') as fo:
+            self.label_names = pickle.load(fo, encoding='bytes')
+
     def _load_training_data(self):
         for i in range(1,6):
             batch_dir = self.dataset_path + '/cifar-10-batches-py/data_batch_{}'.format(i)
@@ -232,7 +235,7 @@ class CIFAR10Dataset(BaseDataset):
         meta_data_lines = ['idx\tlabel\n']
 
         for i, _ in enumerate(self.test_data):
-            line = '{}\t{}\n'.format(i, self.test_labels[i])
+            line = '{}\t{}\n'.format(i, self.label_names[self.test_labels[i]])
             meta_data_lines.append(line)
 
         return meta_data_lines
