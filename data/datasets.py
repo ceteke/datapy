@@ -227,3 +227,12 @@ class CIFAR10Dataset(BaseDataset):
 
             self.test_data = data_rgb
             self.test_labels = labels
+
+    def get_metadata(self):
+        meta_data_lines = ['idx\tlabel\n']
+
+        for i, _ in enumerate(self.test_data):
+            line = '{}\t{}\n'.format(i, self.test_labels[i])
+            meta_data_lines.append(line)
+
+        return meta_data_lines
