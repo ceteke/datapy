@@ -250,5 +250,6 @@ class CIFAR10Dataset(BaseDataset):
             y = index % 100 * 32
 
             img = Image.fromarray(i, 'RGB')
-            result.paste(img, (x, y, x + 32, y + 32))
+            result.paste(img, (y, x, y + 32, x + 32))
+        print(self.label_names[self.test_labels[0]])
         result.save(path)
