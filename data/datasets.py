@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 from .dataset_base import SequenceDataset, BaseDataset
 from PIL import Image
+from tensorflow.examples.tutorials.mnist import input_data
 
 #plt.style.use('ggplot')
 
@@ -251,5 +252,38 @@ class CIFAR10Dataset(BaseDataset):
 
             img = Image.fromarray(i, 'RGB')
             result.paste(img, (y, x, y + 32, x + 32))
+        print(self.label_names[self.test_labels[0]])
+        result.save(path)
+
+class MNISTDataset(BaseDataset):
+    def __init__(self):
+        super().__init__()
+        self.tf_dataset = input_data.read_data_sets("MNIST_data/", one_hot=False, reshape=False)
+        self.label_names = [i for i in range(0,10)]
+
+    def process(self):
+        self.training_data = self.tf_dataset.train.images.copy()
+        self.training_labels = self.tf_dataset.train.labels.copy()
+        self.test_data = self.tf_dataset.test.images.copy()
+        self.test_labels = self.tf_dataset.test.labels.copy()
+
+    def get_metadata(self):
+        meta_data_lines = ['idx\tlabel\n']
+
+        for i, _ in enumerate(self.test_data):
+            line = '{}\t{}\n'.format(i, self.label_names[self.test_labels[i]])
+            meta_data_lines.append(line)
+
+        return meta_data_lines
+
+    def get_sprite(self, path):
+        result = Image.new("L", (2800, 2800))
+        test_images = list((self.test_data*255).astype('uint8'))
+        for index, i in enumerate(test_images):
+            x = index // 100 * 28
+            y = index % 100 * 28
+
+            img = Image.fromarray(i.squeeze(), 'L')
+            result.paste(img, (y, x, y + 28, x + 28))
         print(self.label_names[self.test_labels[0]])
         result.save(path)
