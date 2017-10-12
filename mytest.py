@@ -2,15 +2,9 @@ from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDatase
 import matplotlib.pyplot as plt
 
 
-ds = MNISTDataset()
+ds = CIFAR10Dataset()
 ds.process()
-ds.get_sprite('sprite.png')
-X_test, y_test = ds.get_batches(32, train=False)
+X_test, y_test = ds.get_batches(32, train=True)
 
-for i, t in enumerate(X_test):
-    for b, img in enumerate(t):
-        print(ds.label_names[y_test[i][b]])
-        print(img.shape)
-        plt.imshow(img.squeeze(), cmap='gray')
-        plt.show()
-
+for x in X_test:
+    print(x.shape)
