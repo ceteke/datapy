@@ -71,15 +71,21 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             self._shuffle_data()
 
         if train:
-            training_batches = np.array_split(self.training_data, len(self.training_data)//batch_size)
+            max_idx = len(self.training_data) - (len(self.training_data) % batch_size)
+            t_data = self.training_data[0:max_idx]
+            t_labels = self.training_labels[0:max_idx]
+            training_batches = np.array_split(t_data, ceil(len(t_data)/batch_size))
             if self.training_labels is not None:
-                label_batches = np.array_split(self.training_labels, len(self.training_labels)//batch_size)
+                label_batches = np.array_split(t_labels, ceil(len(t_labels)/batch_size))
                 return training_batches, label_batches
             return training_batches
         else:
-            test_batches = np.array_split(self.test_data, len(self.test_data) // batch_size)
+            max_idx = len(self.test_data) - (len(self.test_data) % batch_size)
+            t_data = self.test_data[0:max_idx]
+            t_labels = self.test_labels[0:max_idx]
+            test_batches = np.array_split(t_data, ceil(len(t_data) / batch_size))
             if self.test_labels is not None:
-                label_batches = np.array_split(self.test_labels, len(self.test_labels) // batch_size)
+                label_batches = np.array_split(t_labels, ceil(len(t_labels) / batch_size))
                 return test_batches, label_batches
             return test_batches
 
