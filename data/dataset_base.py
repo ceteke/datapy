@@ -104,9 +104,9 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         else:
             max_idx = len(self.test_data) - (len(self.test_data) % batch_size)
             t_data = self.test_data[0:max_idx]
-            t_labels = self.test_labels[0:max_idx]
             test_batches = np.array_split(t_data, ceil(len(t_data) / batch_size))
             if self.test_labels is not None:
+                t_labels = self.test_labels[0:max_idx]
                 label_batches = np.array_split(t_labels, ceil(len(t_labels) / batch_size))
                 return test_batches, label_batches
             return test_batches
