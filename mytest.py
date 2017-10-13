@@ -1,8 +1,8 @@
-from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDataset
+from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDataset, FashionDataset
 import matplotlib.pyplot as plt
 
 
-ds = CIFAR10Dataset()
+ds = FashionDataset()
 ds.process()
 X_test, y_test = ds.get_batches(32, train=True)
 
