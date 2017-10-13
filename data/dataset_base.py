@@ -100,7 +100,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             if self.training_labels is not None:
                 label_batches = np.array_split(t_labels, ceil(len(t_labels)/batch_size))
                 return training_batches, label_batches
-            return training_batches
+            return training_batches, None
         else:
             max_idx = len(self.test_data) - (len(self.test_data) % batch_size)
             t_data = self.test_data[0:max_idx]
@@ -109,7 +109,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
                 t_labels = self.test_labels[0:max_idx]
                 label_batches = np.array_split(t_labels, ceil(len(t_labels) / batch_size))
                 return test_batches, label_batches
-            return test_batches
+            return test_batches, None
 
     def _shuffle_data(self):
         rand_indxs = np.random.permutation(len(self.training_data))
