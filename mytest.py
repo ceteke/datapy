@@ -2,9 +2,8 @@ from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDatase
 import matplotlib.pyplot as plt
 
 
-ds = FashionDataset()
+ds = MNISTDataset()
 ds.process()
-X_test, y_test = ds.get_batches(32, train=True)
+ds.sample_dataset()
 
-for x in X_test:
-    print(x.shape)
+print(ds.training_labels.shape, ds.training_data.shape)

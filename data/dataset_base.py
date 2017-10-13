@@ -7,6 +7,7 @@ import numpy as np
 from math import ceil
 import operator
 from nltk.tokenize import RegexpTokenizer
+import random
 
 class BaseDataset(object, metaclass=abc.ABCMeta):
     should_delete = True
@@ -60,6 +61,27 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         self._unarchive_data()
         if self.should_delete:
             os.remove(self._download_file_name)
+
+    def sample_dataset(self, sample_size=500):
+        label_dict = {}
+        for i, label in enumerate(self.training_labels):
+            if label not in label_dict:
+                label_dict[label] = []
+            else:
+                label_dict[label].append(self.training_data[i])
+
+        img_h, img_w, _ = self.training_data[0].shape
+
+        for i, k in enumerate(label_dict.keys()):
+            smp = random.sample(label_dict[k], sample_size)
+            lbl = np.array([k] * sample_size)
+            if i == 0:
+                self.training_data = smp
+                self.training_labels = lbl
+            else:
+                self.training_data = np.concatenate((self.training_data, smp))
+                self.training_labels = np.concatenate((self.training_labels, lbl))
+
 
     def get_batches(self, batch_size, train=True, shuffle=True):
         '''
