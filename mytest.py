@@ -1,9 +1,8 @@
-from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDataset, FashionDataset
+from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDataset, FashionDataset, STLDataset
 import matplotlib.pyplot as plt
 
 
-ds = MNISTDataset()
+ds = STLDataset(is_ae=True)
 ds.process()
-ds.sample_dataset()
-
-print(ds.training_labels.shape, ds.training_data.shape)
+print(ds.training_data[0])
+print(ds.test_data.shape)

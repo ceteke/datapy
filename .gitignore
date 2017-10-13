@@ -11,6 +11,8 @@ __pycache__/
 *aclImdb_v1
 *cifar-10-python
 *cornell_movie_dialogs_corpus
+stl10_binary
+MNIST_data
 # Distribution / packaging
 .Python
 env/

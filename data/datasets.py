@@ -9,6 +9,8 @@ from .dataset_base import SequenceDataset, BaseDataset
 from PIL import Image
 from tensorflow.examples.tutorials.mnist import input_data
 #plt.style.use('ggplot')
+import urllib.request as urllib
+import sys, tarfile
 
 class CornellMovie(SequenceDataset):
     dataset_url = 'http://www.mpi-sws.org/~cristian/data/cornell_movie_dialogs_corpus.zip'
@@ -321,3 +323,56 @@ class MNISTDataset(BaseDataset):
             result.paste(img, (y, x, y + 28, x + 28))
         print(self.label_names[self.test_labels[0]])
         result.save(path)
+
+class STLDataset(BaseDataset):
+    def __init__(self, is_ae=True):
+        super().__init__()
+        self.dataset_url = 'http://ai.stanford.edu/~acoates/stl10/stl10_binary.tar.gz'
+        self.label_names = [i for i in range(0,10)]
+        self.data_type = '.tar.gz'
+        self.is_ae = is_ae
+
+    def process(self):
+        data_file = Path(self.dataset_path)
+        if not data_file.exists():
+            self._download_dataset()
+        self.load_dataset()
+        self.training_data = self.training_data / 255.0
+        self.test_data = self.test_data / 255.0
+
+    def _read_binary(self, path):
+        with open(path, 'rb') as f:
+            everything = np.fromfile(f, dtype=np.uint8)
+            images = np.reshape(everything, (-1, 3, 96, 96))
+            images = np.transpose(images, (0, 3, 2, 1))
+
+            return images
+
+    def _read_labels(self, path_to_labels):
+        with open(path_to_labels, 'rb') as f:
+            labels = np.fromfile(f, dtype=np.uint8)
+            return labels
+
+    def load_dataset(self):
+        train_dir_data = self.dataset_path + '/stl10_binary/train_X.bin'
+        train_dir_label = self.dataset_path + '/stl10_binary/train_y.bin'
+        test_dir_data = self.dataset_path + '/stl10_binary/test_X.bin'
+        test_dir_label = self.dataset_path + '/stl10_binary/test_y.bin'
+        unlabeled_dir = self.dataset_path + '/stl10_binary/unlabeled_X.bin'
+
+        train_data = self._read_binary(train_dir_data)
+        test_data = self._read_binary(test_dir_data)
+
+        if self.is_ae:
+            unlabeled_data = self._read_binary(unlabeled_dir)
+            train_data = np.concatenate((train_data, unlabeled_data))
+        else:
+            train_labels = self._read_labels(train_dir_label)
+            test_labels = self._read_labels(test_dir_label)
+            self.test_labels = test_labels
+            self.training_labels = train_labels
+
+        self.training_data = train_data
+        self.test_data = test_data
+
+
