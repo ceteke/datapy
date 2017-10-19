@@ -20,6 +20,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         self.training_labels = None
         self.test_data = None
         self.test_labels = None
+        self.training_actual = None
 
     @property
     def _download_file_name(self):
@@ -82,6 +83,13 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
                 self.training_data = np.concatenate((self.training_data, smp))
                 self.training_labels = np.concatenate((self.training_labels, lbl))
 
+    def get_batches_actual(self, batch_size):
+        max_idx = len(self.training_data) - (len(self.training_data) % batch_size)
+        t_data = self.training_data[0:max_idx]
+        t_actual = self.training_actual[0:max_idx]
+        training_batches = np.array_split(t_data, ceil(len(t_data) / batch_size))
+        actual_batches = np.array_split(t_actual, ceil(len(t_actual) / batch_size))
+        return training_batches, actual_batches
 
     def get_batches(self, batch_size, train=True, shuffle=True):
         '''
@@ -117,6 +125,8 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             self.training_data[rand] = self.training_data[i]
             if self.training_labels is not None:
                 self.training_labels[rand] = self.training_labels[i]
+            if self.training_actual is not None:
+                self.training_actual[rand] = self.training_actual[i]
 
     def get_batches_sequence(self, batch_size, max_length, pad_token=0, shuffle=True, train=True):
         '''

@@ -2,7 +2,6 @@ from data.datasets import IMDBDataset, CIFAR10Dataset, CornellMovie, MNISTDatase
 import matplotlib.pyplot as plt
 
 
-ds = STLDataset(is_ae=True)
+ds = MNISTDataset()
 ds.process()
-print(ds.training_data[0])
-print(ds.test_data.shape)
+print(ds.training_data.shape, ds.training_actual.shape)

@@ -11,6 +11,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 #plt.style.use('ggplot')
 import urllib.request as urllib
 import sys, tarfile
+from scipy.ndimage.interpolation import rotate
 
 class CornellMovie(SequenceDataset):
     dataset_url = 'http://www.mpi-sws.org/~cristian/data/cornell_movie_dialogs_corpus.zip'
@@ -262,8 +263,22 @@ class FashionDataset(BaseDataset):
         super().__init__()
         self.tf_dataset = input_data.read_data_sets('data/fashion', one_hot=False, reshape=False,  validation_size=0)
         self.label_names = [i for i in range(0,10)]
+        self.degrees = [0, 90, 180, 270]
 
     def process(self):
+        self.form_data()
+        rotated = []
+        actuals = []
+        for t in self.training_data:
+            for d in self.degrees:
+                rot = rotate(t, d)
+                actual = t
+                rotated.append(rot)
+                actuals.append(actual)
+        self.training_data = np.array(rotated)
+        self.training_actual = np.array(actuals)
+
+    def form_data(self):
         self.training_data = self.tf_dataset.train.images.copy()
         self.training_labels = self.tf_dataset.train.labels.copy()
         self.test_data = self.tf_dataset.test.images.copy()
@@ -296,8 +311,22 @@ class MNISTDataset(BaseDataset):
         super().__init__()
         self.tf_dataset = input_data.read_data_sets("MNIST_data/", one_hot=False, reshape=False)
         self.label_names = [i for i in range(0,10)]
+        self.degrees = [0, 90, 180, 270]
 
     def process(self):
+        self.form_data()
+        rotated = []
+        actuals = []
+        for t in self.training_data:
+            for d in self.degrees:
+                rot = rotate(t, d)
+                actual = t
+                rotated.append(rot)
+                actuals.append(actual)
+        self.training_data = np.array(rotated)
+        self.training_actual = np.array(actuals)
+
+    def form_data(self):
         self.training_data = self.tf_dataset.train.images.copy()
         self.training_labels = self.tf_dataset.train.labels.copy()
         self.test_data = self.tf_dataset.test.images.copy()
