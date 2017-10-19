@@ -259,24 +259,26 @@ class CIFAR10Dataset(BaseDataset):
 
 
 class FashionDataset(BaseDataset):
-    def __init__(self):
+    def __init__(self, flip=True):
         super().__init__()
         self.tf_dataset = input_data.read_data_sets('data/fashion', one_hot=False, reshape=False,  validation_size=0)
         self.label_names = [i for i in range(0,10)]
         self.degrees = [0, 90, 180, 270]
+        self.flip = flip
 
     def process(self):
         self.form_data()
-        rotated = []
-        actuals = []
-        for t in self.training_data:
-            for d in self.degrees:
-                rot = rotate(t, d)
-                actual = t
-                rotated.append(rot)
-                actuals.append(actual)
-        self.training_data = np.array(rotated)
-        self.training_actual = np.array(actuals)
+        if self.flip:
+            rotated = []
+            actuals = []
+            for t in self.training_data:
+                for d in self.degrees:
+                    rot = rotate(t, d)
+                    actual = t
+                    rotated.append(rot)
+                    actuals.append(actual)
+            self.training_data = np.array(rotated)
+            self.training_actual = np.array(actuals)
 
     def form_data(self):
         self.training_data = self.tf_dataset.train.images.copy()
