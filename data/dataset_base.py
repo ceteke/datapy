@@ -18,7 +18,7 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         self.__data_types = ['.zip', '.tar.gz']
         self.training_data = None
         self.training_labels = None
-        self.test_data = None
+        self.test_data = None 
         self.test_labels = None
         self.training_actual = None
 
