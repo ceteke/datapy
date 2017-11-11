@@ -193,7 +193,7 @@ class IMDBDataset(SequenceDataset):
 
         test_seq = []
         for i, text in enumerate(test_texts):
-            text_seq = self.line2seq(text)
+            text_seq, miss = self.line2seq(text)
             test_seq.append(text_seq)
 
         self.test_data = test_seq

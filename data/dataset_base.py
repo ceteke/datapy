@@ -143,7 +143,9 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
         else:
             data = self.test_data
 
-        data_batches_unproc = [data[i:i + batch_size] for i in range(0, len(data), batch_size)]
+        upper_limit = (len(data)//batch_size)*batch_size
+
+        data_batches_unproc = [data[i:i + batch_size] for i in range(0, upper_limit, batch_size)]
         data_batches_processed = []
         data_batch_lengths = []
 
@@ -169,10 +171,10 @@ class BaseDataset(object, metaclass=abc.ABCMeta):
             data_batches_processed.append(batch_sequences)
 
         if self.training_labels is not None and train:
-            label_batches = [self.training_labels[i:i + batch_size] for i in range(0, len(self.training_labels), batch_size)]
+            label_batches = [self.training_labels[i:i + batch_size] for i in range(0, upper_limit, batch_size)]
             return data_batches_processed, data_batch_lengths, label_batches
         if self.test_labels is not None and not train:
-            label_batches = [self.test_labels[i:i + batch_size] for i in range(0, len(self.test_labels), batch_size)]
+            label_batches = [self.test_labels[i:i + batch_size] for i in range(0, upper_limit, batch_size)]
             return data_batches_processed, data_batch_lengths, label_batches
         return data_batches_processed, data_batch_lengths
 
