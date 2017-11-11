@@ -80,10 +80,10 @@ class CornellMovie(SequenceDataset):
 class IMDBDataset(SequenceDataset):
     dataset_url = 'http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz'
 
-    def __init__(self, max_vocab_size=None, load_unsup=True, corpus_only=False):
-        super().__init__(max_vocab_size)
-        assert not max_vocab_size and corpus_only, "If vocab size is not given, corpus only mode"
+    def __init__(self, token2idx=None, idx2token=None, max_vocab_size=None, load_unsup=True, corpus_only=False):
+        super().__init__(max_vocab_size, token2idx, idx2token)
         self.__is_processed = False
+        self.__is_vocab_given = True if token2idx else False
         self.load_unsup = load_unsup
         self.corpus = None
         self.corpus_only = corpus_only
@@ -124,25 +124,24 @@ class IMDBDataset(SequenceDataset):
         print("Negative...", flush=True)
         neg_data = self._load_files(neg_files)
 
-        print("Unsupervised...", flush=True)
-        unsup_data = self._load_files(unsup_files)
-
-        print("Forming vocabulary...", flush=True)
+        if self.load_unsup or self.corpus_only:
+            print("Unsupervised...", flush=True)
+            unsup_data = self._load_files(unsup_files)
 
         training_texts = np.concatenate((pos_data, neg_data))
 
-        if self.load_unsup:
+        if self.load_unsup or self.corpus_only:
             training_texts = np.concatenate((training_texts, unsup_data))
             corpus = training_texts
+            if self.corpus_only:
+                return corpus
         else:
-            corpus = np.concatenate((training_texts, unsup_data))
             self.training_labels = np.concatenate((np.ones(len(pos_data)), np.zeros(len(neg_data))))
-        print(self.corpus_only)
-        if self.corpus_only:
-            return corpus
 
-        self._add_lines(training_texts)
-        self._process_vocab()
+        if not self.__is_vocab_given:
+            print("Forming vocabulary...", flush=True)
+            self._add_lines(training_texts)
+            self._process_vocab()
 
         print("Forming sequence data...", flush=True)
         # c = []
@@ -186,6 +185,9 @@ class IMDBDataset(SequenceDataset):
 
         test_texts = np.concatenate((pos_data, neg_data))
         self.test_labels = np.concatenate((np.ones(len(pos_data)), np.zeros(len(neg_data))))
+
+        if self.corpus_only:
+            self.test_data = test_texts
 
         print("Forming sequence data...", flush=True)
 

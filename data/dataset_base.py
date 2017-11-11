@@ -186,20 +186,26 @@ class SequenceDataset(BaseDataset):
     EOS_TOKEN = 'EOS'
     UNK_TOKEN = 'UNK'
 
-    def __init__(self, max_vocab_size):
+    def __init__(self, max_vocab_size, token2idx=None, idx2token=None):
         super().__init__()
-        self.__token2idx = {
-            self.PAD_TOKEN: self.PAD_IDX,
-            self.EOS_TOKEN: self.EOS_IDX,
-            self.UNK_TOKEN: self.UNK_IDX,
-        }
-        self.__idx2token = {
-            self.PAD_IDX: self.PAD_TOKEN,
-            self.EOS_IDX: self.EOS_TOKEN,
-            self.UNK_IDX: self.UNK_TOKEN
-        }
+        if not token2idx:
+            self.__token2idx = {
+                self.PAD_TOKEN: self.PAD_IDX,
+                self.EOS_TOKEN: self.EOS_IDX,
+                self.UNK_TOKEN: self.UNK_IDX,
+            }
+            self.__idx2token = {
+                self.PAD_IDX: self.PAD_TOKEN,
+                self.EOS_IDX: self.EOS_TOKEN,
+                self.UNK_IDX: self.UNK_TOKEN
+            }
+            self.vocab_size = 3
+        else:
+            self.__token2idx = token2idx
+            self.__idx2token = idx2token
+            self.vocab_size = len(token2idx)
+
         self.__token2count = {}
-        self.vocab_size = 3
         self.__tokenizer = RegexpTokenizer(r'\w+')
         self.max_vocab_size = max_vocab_size
 
@@ -214,7 +220,7 @@ class SequenceDataset(BaseDataset):
         print("Total number of tokens: {}".format(len(self.__token2count)))
 
     def _tokenize_line(self, line):
-        l_proc = line.strip().replace('<br >', '').replace('<br />', '').lower()
+        l_proc = line.strip().lower()
         l_tok = self.__tokenizer.tokenize(l_proc)
         return l_tok
 
@@ -227,7 +233,7 @@ class SequenceDataset(BaseDataset):
             if t in self.__token2idx:
                 l_seq.append(self.__token2idx[t])
             else:
-                l_seq.append(self.UNK_IDX)
+                # l_seq.append(self.UNK_IDX)
                 miss_count += 1
 
         return np.array(l_seq), miss_count
